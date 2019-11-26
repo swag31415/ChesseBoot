@@ -94,4 +94,39 @@ public class Utils {
     public static void dispImage(Color[][] img) {
         dispImage(getImage(img));
     }
+
+    public static Color[][] filterColors(Color[][] img, Color replacement, Color... filters) {
+        int d1 = img.length;
+        int d2 = img[0].length;
+        Color[][] newImg = new Color[d1][d2];
+        for (int i = 0; i < d1; i++) {
+            for (int j = 0; j < d2; j++) {
+
+                boolean isBackground = false;
+                for (Color filter : filters) {
+                    if (img[i][j].getRGB() == filter.getRGB()) {
+                        isBackground = true;
+                    }
+                }
+
+                if (isBackground) {
+                    newImg[i][j] = replacement;
+                } else {
+                    newImg[i][j] = img[i][j];
+                }
+            }
+        }
+        return newImg;
+    }
+
+    public static double imgavg(Color[][] img) {
+        double sum = 0;
+        int count = img.length * img[0].length * 3;
+        for (Color[] colors : img) {
+            for (Color color : colors) {
+                sum += (double) (color.getRed() + color.getGreen() + color.getBlue()) / count;
+            }
+        }
+        return sum;
+    }
 }

@@ -7,106 +7,249 @@ import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.Color;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
+
+import xyz.niflheim.stockfish.StockfishClient;
+import xyz.niflheim.stockfish.engine.enums.Option;
+import xyz.niflheim.stockfish.engine.enums.Query;
+import xyz.niflheim.stockfish.engine.enums.QueryType;
+import xyz.niflheim.stockfish.engine.enums.Variant;
+import xyz.niflheim.stockfish.exceptions.StockfishInitException;
 
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.event.InputEvent;
 
 public class App {
-    // public static void main(String[] args) throws StockfishInitException {
-    // StockfishClient client = new StockfishClient.Builder()
-    // .setInstances(4)
-    // .setVariant(Variant.BMI2)
-    // .build();
 
-    // Query query = new Query.Builder(QueryType.Legal_Moves)
-    // .setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-    // .build();
+    public static int startX = -1, endX = -1, startY = -1, endY = -1;
 
-    // client.submit(query, result -> {
-    // System.out.println(result);
-    // });
-    // }
-
-    public static void main(String[] args) throws IOException, AWTException {
+    public static void main(String[] args) throws IOException, AWTException, StockfishInitException {
         Color light = new Color(238, 238, 210);
         Color dark = new Color(118, 150, 86);
-
+        Color light_selected = new Color(246, 246, 130);
+        Color dark_selected = new Color(186, 202, 68);
         Robot r = new Robot();
+
+        StockfishClient client = new StockfishClient.Builder().setInstances(4)
+                .setOption(Option.Minimum_Thinking_Time, 50) // Minimum thinking time Stockfish will take
+                .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
+                .setVariant(Variant.BMI2).build();
+
+        double[] Pieces = getPieces(r, light, dark, light_selected, dark_selected);
+        Map<Double, String> PieceMap = generatePieceMap(Pieces);
+
+        String fen = "";
+        int count = 0;
+        int threshold = 3;
+        while (true) {
+            String guess = guessBoard(PieceMap, getPieces(r, light, dark, light_selected, dark_selected));
+            if (guess.equals(fen)) {
+                count++;
+            } else {
+                fen = guess;
+                count = 0;
+            }
+
+            if (count >= threshold) {
+                System.out.println(fen);
+                makeNextMove(client, r, fen);
+                count = 0;
+            }
+        }
+    }
+
+    public static void makeMove(Robot r, String move, int patMillis) {
+        int x_i = move.charAt(0) - 'a' + 1;
+        int y_i = move.charAt(1) - '1' + 1;
+        int x = move.charAt(2) - 'a' + 1;
+        int y = move.charAt(3) - '1' + 1;
+
+        int xScale = (endX - startX) / 8;
+        int yScale = (endY - startY) / 8;
+
+        x_i = startX + (x_i * xScale) - (xScale / 2);
+        y_i = startY + ((9 - y_i) * yScale) - (yScale / 2);
+        x = startX + (x * xScale) - (xScale / 2);
+        y = startY + ((9 - y) * yScale) - (yScale / 2);
+
+        r.setAutoDelay(patMillis);
+
+        r.mouseMove(x_i, y_i);
+        r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        r.mouseMove(x, y);
+        r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        r.mouseMove(startX - 1, endY + 1);
+    }
+
+    public static void makeNextMove(StockfishClient client, Robot r, String fen) {
+        Query query = new Query.Builder(QueryType.Best_Move).setFen(fen).build();
+
+        client.submit(query, result -> {
+            makeMove(r, result, 50);
+        });
+    }
+
+    public static double[] getPieces(Robot r, Color light, Color dark, Color light_selected, Color dark_selected) {
         Rectangle capture = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
         Color[][] Image = Utils.getColors(r.createScreenCapture(capture));
 
-        Utils.dispImage(getBoard(Image, light, dark));
+        Image = Utils.filterColors(Image, light, light_selected);
+        Image = Utils.filterColors(Image, dark, dark_selected);
+
+        Color[][] Board = getBoard(Image, light, dark);
+
+        return getPieces(Board, light, dark);
+    }
+
+    public static String guessBoard(Map<Double, String> pieceMap, double[] pieces) {
+        StringBuilder board = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            int empties = 0;
+            for (int j = 0; j < 8; j++) {
+                String guess = guessPiece(pieceMap, pieces[(8 * i) + j]);
+                if (guess.equals(" ")) {
+                    empties++;
+                } else {
+                    board.append((empties != 0) ? empties : "");
+                    empties = 0;
+                    board.append(guess);
+                }
+            }
+            board.append((empties != 0) ? empties : "");
+            board.append((i == 7) ? "" : "/");
+        }
+
+        board.append(" w - - 0 1");
+        return board.toString();
+    }
+
+    public static String guessPiece(Map<Double, String> pieceMap, double piece) {
+        String guess = "";
+        double error = Double.MAX_VALUE;
+        for (Entry<Double, String> entry : pieceMap.entrySet()) {
+            double err = Math.abs(entry.getKey() - piece);
+            if (err < error) {
+                error = err;
+                guess = entry.getValue();
+            }
+        }
+        return guess;
+    }
+
+    public static Map<Double, String> generatePieceMap(double[] pieces) {
+        Map<Double, String> pieceMap = new HashMap<Double, String>();
+        pieceMap.put(pieces[0], "r");
+        pieceMap.put(pieces[1], "n");
+        pieceMap.put(pieces[2], "b");
+        pieceMap.put(pieces[3], "q");
+        pieceMap.put(pieces[4], "k");
+        pieceMap.put(pieces[5], "b");
+        pieceMap.put(pieces[6], "n");
+        pieceMap.put(pieces[7], "r");
+        pieceMap.put(pieces[8], "p");
+        pieceMap.put(pieces[9], "p");
+
+        pieceMap.put(pieces[63], "R");
+        pieceMap.put(pieces[62], "N");
+        pieceMap.put(pieces[61], "B");
+        pieceMap.put(pieces[60], "K");
+        pieceMap.put(pieces[59], "Q");
+        pieceMap.put(pieces[58], "B");
+        pieceMap.put(pieces[57], "N");
+        pieceMap.put(pieces[56], "R");
+        pieceMap.put(pieces[55], "P");
+        pieceMap.put(pieces[54], "P");
+
+        pieceMap.put(0.0, " ");
+        return pieceMap;
+    }
+
+    public static double[] getPieces(Color[][] board, Color light, Color dark) {
+        Color[][] pboard = Utils.filterColors(board, Color.BLACK, light, dark);
+        int w = (pboard[0].length / 8);
+        int h = (pboard.length / 8);
+        double[] pieces = new double[64];
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                pieces[(8 * i) + j] = Utils
+                        .imgavg(Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1));
+            }
+        }
+        return pieces;
     }
 
     public static Color[][] getBoard(Color[][] img, Color light, Color dark) {
-        int startX = -1, endX = -1, startY = -1, endY = -1;
+        if ((startX == -1) && (startY == -1) && (endX == -1) && (endY == -1)) {
+            int h = img.length;
+            int w = img[0].length;
+            Color[][] img_t = Utils.transpose(img);
+            int count = 0;
 
-        int h = img.length;
-        int w = img[0].length;
-        Color[][] img_t = Utils.transpose(img);
-        int count = 0;
+            Function<Color, Boolean> isLight = c -> {
+                return c.getRGB() == light.getRGB();
+            };
+            Function<Color, Boolean> isDark = c -> {
+                return c.getRGB() == dark.getRGB();
+            };
 
-        Function<Color, Boolean> isLight = c -> {
-            return c.getRGB() == light.getRGB();
-        };
-        Function<Color, Boolean> isDark = c -> {
-            return c.getRGB() == dark.getRGB();
-        };
+            count = 0;
+            for (Color[] row : img) {
+                Color[] row_f = Utils.flipArray(row);
+                int firstLight = Utils.getFirstIndex(row, isLight);
+                int lastLight = (w - 1) - Utils.getFirstIndex(row_f, isLight);
+                int firstDark = Utils.getFirstIndex(row, isDark);
+                int lastDark = (w - 1) - Utils.getFirstIndex(row_f, isDark);
 
-        count = 0;
-        for (Color[] row : img) {
-            Color[] row_f = Utils.flipArray(row);
-            int firstLight = Utils.getFirstIndex(row, isLight);
-            int lastLight = w - Utils.getFirstIndex(row_f, isLight);
-            int firstDark = Utils.getFirstIndex(row, isDark);
-            int lastDark = w - Utils.getFirstIndex(row_f, isDark);
-
-            if ((firstLight != firstDark) || (lastLight != lastDark)) {
-                System.out.println(String.format("%d, %d, %d, %d", firstLight, lastLight, firstDark, lastDark));
-                int first = Math.min(firstLight, firstDark);
-                int last = Math.max(lastLight, lastDark);
-                if ((first == startX) && (last == endX)) {
-                    count++;
+                if ((firstLight != firstDark) || (lastLight != lastDark)) {
+                    int first = Math.min(firstLight, firstDark);
+                    int last = Math.max(lastLight, lastDark);
+                    if ((first == startX) && (last == endX)) {
+                        count++;
+                    } else {
+                        count = 0;
+                        startX = first;
+                        endX = last;
+                    }
                 } else {
                     count = 0;
-                    startX = first;
-                    endX = last;
                 }
-            } else {
-                count = 0;
+
+                if (count >= 10) {
+                    break;
+                }
             }
 
-            if (count >= 10) {
-                break;
-            }
-        }
+            count = 0;
+            for (Color[] column : img_t) {
+                Color[] column_f = Utils.flipArray(column);
+                int firstLight = Utils.getFirstIndex(column, isLight);
+                int lastLight = (h - 1) - Utils.getFirstIndex(column_f, isLight);
+                int firstDark = Utils.getFirstIndex(column, isDark);
+                int lastDark = (h - 1) - Utils.getFirstIndex(column_f, isDark);
 
-        count = 0;
-        for (Color[] column : img_t) {
-            Color[] column_f = Utils.flipArray(column);
-            int firstLight = Utils.getFirstIndex(column, isLight);
-            int lastLight = h - Utils.getFirstIndex(column_f, isLight);
-            int firstDark = Utils.getFirstIndex(column, isDark);
-            int lastDark = h - Utils.getFirstIndex(column_f, isDark);
-
-            if ((firstLight != firstDark) || (lastLight != lastDark)) {
-                System.out.println(String.format("%d, %d, %d, %d", firstLight, lastLight, firstDark, lastDark));
-                int first = Math.min(firstLight, firstDark);
-                int last = Math.max(lastLight, lastDark);
-                if ((first == startY) && (last == endY)) {
-                    count++;
+                if ((firstLight != firstDark) || (lastLight != lastDark)) {
+                    int first = Math.min(firstLight, firstDark);
+                    int last = Math.max(lastLight, lastDark);
+                    if ((first == startY) && (last == endY)) {
+                        count++;
+                    } else {
+                        count = 0;
+                        startY = first;
+                        endY = last;
+                    }
                 } else {
                     count = 0;
-                    startY = first;
-                    endY = last;
                 }
-            } else {
-                count = 0;
-            }
 
-            if (count >= 10) {
-                break;
+                if (count >= 10) {
+                    break;
+                }
             }
         }
 
