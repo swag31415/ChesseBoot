@@ -3,25 +3,113 @@
  */
 package ChessBot;
 
-import xyz.niflheim.stockfish.StockfishClient;
-import xyz.niflheim.stockfish.engine.enums.Query;
-import xyz.niflheim.stockfish.engine.enums.QueryType;
-import xyz.niflheim.stockfish.engine.enums.Variant;
-import xyz.niflheim.stockfish.exceptions.StockfishInitException;
+import java.awt.AWTException;
+import java.awt.Robot;
+import java.awt.Color;
+import java.io.IOException;
+import java.util.function.Function;
+
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 
 public class App {
-    public static void main(String[] args) throws StockfishInitException {
-        StockfishClient client = new StockfishClient.Builder()
-        .setInstances(4)
-        .setVariant(Variant.BMI2)
-        .build();
+    // public static void main(String[] args) throws StockfishInitException {
+    // StockfishClient client = new StockfishClient.Builder()
+    // .setInstances(4)
+    // .setVariant(Variant.BMI2)
+    // .build();
 
-        Query query = new Query.Builder(QueryType.Legal_Moves)
-        .setFen("rnbqkbnr/pppppppp/8/8/8/8/RRRRRRRR/RNBQKBNR w KQkq - 0 1")
-        .build();
+    // Query query = new Query.Builder(QueryType.Legal_Moves)
+    // .setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+    // .build();
 
-        client.submit(query, result -> {
-            System.out.println(result);
-        });
+    // client.submit(query, result -> {
+    // System.out.println(result);
+    // });
+    // }
+
+    public static void main(String[] args) throws IOException, AWTException {
+        Color light = new Color(238, 238, 210);
+        Color dark = new Color(118, 150, 86);
+
+        Robot r = new Robot();
+        Rectangle capture = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        Color[][] Image = Utils.getColors(r.createScreenCapture(capture));
+
+        Utils.dispImage(getBoard(Image, light, dark));
+    }
+
+    public static Color[][] getBoard(Color[][] img, Color light, Color dark) {
+        int startX = -1, endX = -1, startY = -1, endY = -1;
+
+        int h = img.length;
+        int w = img[0].length;
+        Color[][] img_t = Utils.transpose(img);
+        int count = 0;
+
+        Function<Color, Boolean> isLight = c -> {
+            return c.getRGB() == light.getRGB();
+        };
+        Function<Color, Boolean> isDark = c -> {
+            return c.getRGB() == dark.getRGB();
+        };
+
+        count = 0;
+        for (Color[] row : img) {
+            Color[] row_f = Utils.flipArray(row);
+            int firstLight = Utils.getFirstIndex(row, isLight);
+            int lastLight = w - Utils.getFirstIndex(row_f, isLight);
+            int firstDark = Utils.getFirstIndex(row, isDark);
+            int lastDark = w - Utils.getFirstIndex(row_f, isDark);
+
+            if ((firstLight != firstDark) || (lastLight != lastDark)) {
+                System.out.println(String.format("%d, %d, %d, %d", firstLight, lastLight, firstDark, lastDark));
+                int first = Math.min(firstLight, firstDark);
+                int last = Math.max(lastLight, lastDark);
+                if ((first == startX) && (last == endX)) {
+                    count++;
+                } else {
+                    count = 0;
+                    startX = first;
+                    endX = last;
+                }
+            } else {
+                count = 0;
+            }
+
+            if (count >= 10) {
+                break;
+            }
+        }
+
+        count = 0;
+        for (Color[] column : img_t) {
+            Color[] column_f = Utils.flipArray(column);
+            int firstLight = Utils.getFirstIndex(column, isLight);
+            int lastLight = h - Utils.getFirstIndex(column_f, isLight);
+            int firstDark = Utils.getFirstIndex(column, isDark);
+            int lastDark = h - Utils.getFirstIndex(column_f, isDark);
+
+            if ((firstLight != firstDark) || (lastLight != lastDark)) {
+                System.out.println(String.format("%d, %d, %d, %d", firstLight, lastLight, firstDark, lastDark));
+                int first = Math.min(firstLight, firstDark);
+                int last = Math.max(lastLight, lastDark);
+                if ((first == startY) && (last == endY)) {
+                    count++;
+                } else {
+                    count = 0;
+                    startY = first;
+                    endY = last;
+                }
+            } else {
+                count = 0;
+            }
+
+            if (count >= 10) {
+                break;
+            }
+        }
+
+        return Utils.arraySubset(img, startY, endY, startX, endX);
     }
 }
