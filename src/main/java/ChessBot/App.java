@@ -7,6 +7,7 @@ import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.Color;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,13 +42,14 @@ public class App {
                 .setVariant(Variant.BMI2).build();
 
         Double[][] Pieces = getPieces(r, light, dark, light_selected, dark_selected);
-        Map<Double[], String> PieceMap = generatePieceMap(Pieces);
+        boolean isWhite = getIsWhite(Pieces);
+        Map<Double[], String> PieceMap = generatePieceMap(Pieces, isWhite);
 
         String fen = "";
         int count = 0;
         int threshold = 3;
         while (true) {
-            String guess = guessBoard(PieceMap, getPieces(r, light, dark, light_selected, dark_selected));
+            String guess = guessBoard(PieceMap, getPieces(r, light, dark, light_selected, dark_selected), isWhite);
             if (guess.equals(fen)) {
                 count++;
             } else {
@@ -57,13 +59,17 @@ public class App {
 
             if (count >= threshold) {
                 System.out.println(fen);
-                makeNextMove(client, r, fen);
+                makeNextMove(client, r, fen, isWhite);
                 count = 0;
             }
         }
     }
 
-    public static void makeMove(Robot r, String move, int patMillis) {
+    public static boolean getIsWhite(Double[][] pieces) {
+        return pieces[0][0] < pieces[63][0];
+    }
+
+    public static void makeMove(Robot r, String move, boolean isWhite, int patMillis) {
         int x_i = move.charAt(0) - 'a' + 1;
         int y_i = move.charAt(1) - '1' + 1;
         int x = move.charAt(2) - 'a' + 1;
@@ -72,10 +78,10 @@ public class App {
         int xScale = (endX - startX) / 8;
         int yScale = (endY - startY) / 8;
 
-        x_i = startX + (x_i * xScale) - (xScale / 2);
-        y_i = startY + ((9 - y_i) * yScale) - (yScale / 2);
-        x = startX + (x * xScale) - (xScale / 2);
-        y = startY + ((9 - y) * yScale) - (yScale / 2);
+        x_i = startX + ((isWhite ? x_i : 9 - x_i) * xScale) - (xScale / 2);
+        y_i = startY + ((!isWhite ? y_i : 9 - y_i) * yScale) - (yScale / 2);
+        x = startX + ((isWhite ? x : 9 - x) * xScale) - (xScale / 2);
+        y = startY + ((!isWhite ? y : 9 - y) * yScale) - (yScale / 2);
 
         r.setAutoDelay(patMillis);
 
@@ -88,11 +94,12 @@ public class App {
         r.mouseMove(startX - 10, endY + 10);
     }
 
-    public static void makeNextMove(StockfishClient client, Robot r, String fen) {
+    public static void makeNextMove(StockfishClient client, Robot r, String fen, boolean isWhite) {
         Query query = new Query.Builder(QueryType.Best_Move).setFen(fen).build();
 
         client.submit(query, result -> {
-            makeMove(r, result, 50);
+            makeMove(r, result, isWhite, 50);
+            System.out.println(result);
         });
     }
 
@@ -108,7 +115,7 @@ public class App {
         return getPieces(Board, light, dark);
     }
 
-    public static String guessBoard(Map<Double[], String> pieceMap, Double[][] pieces) {
+    public static String guessBoard(Map<Double[], String> pieceMap, Double[][] pieces, boolean isWhite) {
         StringBuilder board = new StringBuilder();
         for (int i = 0; i < 8; i++) {
             int empties = 0;
@@ -125,8 +132,12 @@ public class App {
             board.append((empties != 0) ? empties : "");
             board.append((i == 7) ? "" : "/");
         }
+        if (!isWhite) {
+            board.reverse();
+        }
+        board.append(isWhite ? " w" : " b");
+        board.append(" - - 0 1");
 
-        board.append(" w - - 0 1");
         return board.toString();
     }
 
@@ -146,32 +157,38 @@ public class App {
         return guess;
     }
 
-    public static Map<Double[], String> generatePieceMap(Double[][] pieces) {
+    public static Map<Double[], String> generatePieceMap(Double[][] pieces, boolean isWhite) {
         Map<Double[], String> pieceMap = new HashMap<Double[], String>();
-        pieceMap.put(pieces[0], "r");
-        pieceMap.put(pieces[1], "n");
-        pieceMap.put(pieces[2], "b");
-        pieceMap.put(pieces[3], "q");
-        pieceMap.put(pieces[4], "k");
-        pieceMap.put(pieces[5], "b");
-        pieceMap.put(pieces[6], "n");
-        pieceMap.put(pieces[7], "r");
-        pieceMap.put(pieces[8], "p");
-        pieceMap.put(pieces[9], "p");
+        Double[] emptyTile = {0.0, 0.0, 0.0, 0.0};
+        int offset = 48;
+        String[] topSet = new String[16];
+        String[] bottomSet = new String[16];
 
-        pieceMap.put(pieces[16], " ");
+        if (isWhite) {
+            String[] blackSet = {"r", "n", "b", "q", "k", "b", "n", "r", "p", "p", "p", "p", "p", "p", "p", "p"};
+            String[] whiteSet = {"P", "P", "P", "P", "P", "P", "P", "P", "R", "N", "B", "Q", "K", "B", "N", "R"};
+            topSet = blackSet;
+            bottomSet = whiteSet;
+        } else {
+            String[] whiteSet = {"R", "N", "B", "K", "Q", "B", "N", "R", "P", "P", "P", "P", "P", "P", "P", "P"};
+            String[] blackSet = {"p", "p", "p", "p", "p", "p", "p", "p", "r", "n", "b", "k", "q", "b", "n", "r"};
+            topSet = whiteSet;
+            bottomSet = blackSet;
+        }
+        
+        for (int i = 0; i < topSet.length; i++) {
+            if (!Arrays.equals(pieces[i], emptyTile)) {
+                pieceMap.put(pieces[i], topSet[i]);
+            }
+        }
 
-        pieceMap.put(pieces[63], "R");
-        pieceMap.put(pieces[62], "N");
-        pieceMap.put(pieces[61], "B");
-        pieceMap.put(pieces[60], "K");
-        pieceMap.put(pieces[59], "Q");
-        pieceMap.put(pieces[58], "B");
-        pieceMap.put(pieces[57], "N");
-        pieceMap.put(pieces[56], "R");
-        pieceMap.put(pieces[55], "P");
-        pieceMap.put(pieces[54], "P");
+        for (int i = 0; i < bottomSet.length; i++) {
+            if (!Arrays.equals(pieces[i + offset], emptyTile)) {
+                pieceMap.put(pieces[i + offset], bottomSet[i]);
+            }
+        }
 
+        pieceMap.put(emptyTile, " ");
         return pieceMap;
     }
 
