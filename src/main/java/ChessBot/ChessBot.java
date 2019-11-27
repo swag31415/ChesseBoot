@@ -1,8 +1,11 @@
 package ChessBot;
 
+import java.awt.AWTException;
 import java.awt.Color;
-import java.awt.event.InputEvent;
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.Robot;
+import java.awt.event.InputEvent;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,8 +13,11 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 
 import xyz.niflheim.stockfish.StockfishClient;
+import xyz.niflheim.stockfish.engine.enums.Option;
 import xyz.niflheim.stockfish.engine.enums.Query;
 import xyz.niflheim.stockfish.engine.enums.QueryType;
+import xyz.niflheim.stockfish.engine.enums.Variant;
+import xyz.niflheim.stockfish.exceptions.StockfishInitException;
 
 public class ChessBot {
     private int startX;
@@ -36,13 +42,22 @@ public class ChessBot {
         this.dark_selected = dark_selected;
         this.r = r;
         this.client = client;
-        this.getBoard();
-        this.getIsWhite();
-        this.generatePieceMap();
+    }
+
+    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected) throws AWTException, StockfishInitException {
+        this(light, dark, light_selected, dark_selected, new Robot(),
+                new StockfishClient.Builder()
+                .setInstances(4)
+                .setOption(Option.Threads, 4) // Number of threads that Stockfish will use
+                .setOption(Option.Minimum_Thinking_Time, 100) // Minimum thinking time Stockfish will take
+                .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
+                .setVariant(Variant.BMI2) // Stockfish Variant
+                .build());
     }
 
     public void makeMove() {
         String fen = guessBoardFen();
+        System.out.println(fen);
         Query query = new Query.Builder(QueryType.Best_Move).setFen(fen).build();
 
         client.submit(query, result -> {
@@ -55,23 +70,23 @@ public class ChessBot {
         Double[][] pieces = getPieces();
 
         pieceMap = new HashMap<Double[], String>();
-        Double[] emptyTile = {0.0, 0.0, 0.0, 0.0};
+        Double[] emptyTile = { 0.0, 0.0, 0.0, 0.0 };
         int offset = 48;
         String[] topSet = new String[16];
         String[] bottomSet = new String[16];
 
         if (isWhite) {
-            String[] blackSet = {"r", "n", "b", "q", "k", "b", "n", "r", "p", "p", "p", "p", "p", "p", "p", "p"};
-            String[] whiteSet = {"P", "P", "P", "P", "P", "P", "P", "P", "R", "N", "B", "Q", "K", "B", "N", "R"};
+            String[] blackSet = { "r", "n", "b", "q", "k", "b", "n", "r", "p", "p", "p", "p", "p", "p", "p", "p" };
+            String[] whiteSet = { "P", "P", "P", "P", "P", "P", "P", "P", "R", "N", "B", "Q", "K", "B", "N", "R" };
             topSet = blackSet;
             bottomSet = whiteSet;
         } else {
-            String[] whiteSet = {"R", "N", "B", "K", "Q", "B", "N", "R", "P", "P", "P", "P", "P", "P", "P", "P"};
-            String[] blackSet = {"p", "p", "p", "p", "p", "p", "p", "p", "r", "n", "b", "k", "q", "b", "n", "r"};
+            String[] whiteSet = { "R", "N", "B", "K", "Q", "B", "N", "R", "P", "P", "P", "P", "P", "P", "P", "P" };
+            String[] blackSet = { "p", "p", "p", "p", "p", "p", "p", "p", "r", "n", "b", "k", "q", "b", "n", "r" };
             topSet = whiteSet;
             bottomSet = blackSet;
         }
-        
+
         for (int i = 0; i < topSet.length; i++) {
             if (!Arrays.equals(pieces[i], emptyTile)) {
                 pieceMap.put(pieces[i], topSet[i]);
@@ -168,7 +183,7 @@ public class ChessBot {
 
     private Double[][] getPieces() {
         Color[][] board = Utils.getColors(Utils.getScreenshot(r, startX, endX, startY, endY));
-        Color[][] pboard = Utils.filterColors(board, Color.BLACK, light, dark);
+        Color[][] pboard = Utils.filterColors(board, Color.BLACK, light, dark, light_selected, dark_selected);
         int w = (pboard[0].length / 8);
         int h = (pboard.length / 8);
         Double[][] pieces = new Double[64][4];
@@ -177,10 +192,10 @@ public class ChessBot {
                 Color[][] tile = Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1);
                 int tw = tile[0].length - 1;
                 int th = tile.length - 1;
-                pieces[(8 * i) + j][0] = Utils.imgavg(Utils.arraySubset(tile, 0, th/2, 0, tw/2));
-                pieces[(8 * i) + j][1] = Utils.imgavg(Utils.arraySubset(tile, 0, th/2, tw/2, tw));
-                pieces[(8 * i) + j][2] = Utils.imgavg(Utils.arraySubset(tile, th/2, th, 0, tw/2));
-                pieces[(8 * i) + j][3] = Utils.imgavg(Utils.arraySubset(tile, th/2, th, tw/2, tw));
+                pieces[(8 * i) + j][0] = Utils.imgavg(Utils.arraySubset(tile, 0, th / 2, 0, tw / 2));
+                pieces[(8 * i) + j][1] = Utils.imgavg(Utils.arraySubset(tile, 0, th / 2, tw / 2, tw));
+                pieces[(8 * i) + j][2] = Utils.imgavg(Utils.arraySubset(tile, th / 2, th, 0, tw / 2));
+                pieces[(8 * i) + j][3] = Utils.imgavg(Utils.arraySubset(tile, th / 2, th, tw / 2, tw));
             }
         }
         return pieces;
@@ -244,13 +259,13 @@ public class ChessBot {
         y = startY + ((!isWhite ? y : 9 - y) * yScale) - (yScale / 2);
 
         r.setAutoDelay(patMillis);
-
+        Point origin = MouseInfo.getPointerInfo().getLocation();
         r.mouseMove(x_i, y_i);
         r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
         r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
         r.mouseMove(x, y);
         r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
         r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-        r.mouseMove(startX - 10, endY + 10);
+        r.mouseMove((int) origin.getX(), (int) origin.getY());
     }
 }
