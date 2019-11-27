@@ -34,13 +34,14 @@ public class App {
         Color dark_selected = new Color(186, 202, 68);
         Robot r = new Robot();
 
-        StockfishClient client = new StockfishClient.Builder().setInstances(4)
+        StockfishClient client = new StockfishClient.Builder()
+                .setInstances(4)
                 .setOption(Option.Minimum_Thinking_Time, 50) // Minimum thinking time Stockfish will take
                 .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
                 .setVariant(Variant.BMI2).build();
 
-        double[] Pieces = getPieces(r, light, dark, light_selected, dark_selected);
-        Map<Double, String> PieceMap = generatePieceMap(Pieces);
+        Double[][] Pieces = getPieces(r, light, dark, light_selected, dark_selected);
+        Map<Double[], String> PieceMap = generatePieceMap(Pieces);
 
         String fen = "";
         int count = 0;
@@ -84,7 +85,7 @@ public class App {
         r.mouseMove(x, y);
         r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
         r.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-        r.mouseMove(startX - 1, endY + 1);
+        r.mouseMove(startX - 10, endY + 10);
     }
 
     public static void makeNextMove(StockfishClient client, Robot r, String fen) {
@@ -95,7 +96,7 @@ public class App {
         });
     }
 
-    public static double[] getPieces(Robot r, Color light, Color dark, Color light_selected, Color dark_selected) {
+    public static Double[][] getPieces(Robot r, Color light, Color dark, Color light_selected, Color dark_selected) {
         Rectangle capture = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
         Color[][] Image = Utils.getColors(r.createScreenCapture(capture));
 
@@ -107,7 +108,7 @@ public class App {
         return getPieces(Board, light, dark);
     }
 
-    public static String guessBoard(Map<Double, String> pieceMap, double[] pieces) {
+    public static String guessBoard(Map<Double[], String> pieceMap, Double[][] pieces) {
         StringBuilder board = new StringBuilder();
         for (int i = 0; i < 8; i++) {
             int empties = 0;
@@ -129,11 +130,14 @@ public class App {
         return board.toString();
     }
 
-    public static String guessPiece(Map<Double, String> pieceMap, double piece) {
+    public static String guessPiece(Map<Double[], String> pieceMap, Double[] piece) {
         String guess = "";
         double error = Double.MAX_VALUE;
-        for (Entry<Double, String> entry : pieceMap.entrySet()) {
-            double err = Math.abs(entry.getKey() - piece);
+        for (Entry<Double[], String> entry : pieceMap.entrySet()) {
+            double err = 0;
+            for (int i = 0; i < entry.getKey().length; i++) {
+                err += Math.pow(entry.getKey()[i] - piece[i], 2);
+            }
             if (err < error) {
                 error = err;
                 guess = entry.getValue();
@@ -142,8 +146,8 @@ public class App {
         return guess;
     }
 
-    public static Map<Double, String> generatePieceMap(double[] pieces) {
-        Map<Double, String> pieceMap = new HashMap<Double, String>();
+    public static Map<Double[], String> generatePieceMap(Double[][] pieces) {
+        Map<Double[], String> pieceMap = new HashMap<Double[], String>();
         pieceMap.put(pieces[0], "r");
         pieceMap.put(pieces[1], "n");
         pieceMap.put(pieces[2], "b");
@@ -154,6 +158,8 @@ public class App {
         pieceMap.put(pieces[7], "r");
         pieceMap.put(pieces[8], "p");
         pieceMap.put(pieces[9], "p");
+
+        pieceMap.put(pieces[16], " ");
 
         pieceMap.put(pieces[63], "R");
         pieceMap.put(pieces[62], "N");
@@ -166,19 +172,23 @@ public class App {
         pieceMap.put(pieces[55], "P");
         pieceMap.put(pieces[54], "P");
 
-        pieceMap.put(0.0, " ");
         return pieceMap;
     }
 
-    public static double[] getPieces(Color[][] board, Color light, Color dark) {
+    public static Double[][] getPieces(Color[][] board, Color light, Color dark) {
         Color[][] pboard = Utils.filterColors(board, Color.BLACK, light, dark);
         int w = (pboard[0].length / 8);
         int h = (pboard.length / 8);
-        double[] pieces = new double[64];
+        Double[][] pieces = new Double[64][4];
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                pieces[(8 * i) + j] = Utils
-                        .imgavg(Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1));
+                Color[][] tile = Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1);
+                int tw = tile[0].length - 1;
+                int th = tile.length - 1;
+                pieces[(8 * i) + j][0] = Utils.imgavg(Utils.arraySubset(tile, 0, th/2, 0, tw/2));
+                pieces[(8 * i) + j][1] = Utils.imgavg(Utils.arraySubset(tile, 0, th/2, tw/2, tw));
+                pieces[(8 * i) + j][2] = Utils.imgavg(Utils.arraySubset(tile, th/2, th, 0, tw/2));
+                pieces[(8 * i) + j][3] = Utils.imgavg(Utils.arraySubset(tile, th/2, th, tw/2, tw));
             }
         }
         return pieces;
