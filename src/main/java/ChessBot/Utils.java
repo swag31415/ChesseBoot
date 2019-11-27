@@ -9,6 +9,9 @@ import javax.swing.JLabel;
 
 import java.awt.image.BufferedImage;
 import java.awt.Color;
+import java.awt.Robot;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 
 public class Utils {
     public static <T> T[][] arraySubset(T[][] array, int startY, int endY, int startX, int endX) {
@@ -54,6 +57,14 @@ public class Utils {
             }
         }
         return -1;
+    }
+
+    public static BufferedImage getScreenshot(Robot r) {
+        return r.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
+    }
+
+    public static BufferedImage getScreenshot(Robot r, int startX, int endX, int startY, int endY) {
+        return r.createScreenCapture(new Rectangle(startX, startY, endX - startX, endY - startY));
     }
 
     public static BufferedImage getImage(Color[][] clrs) {
