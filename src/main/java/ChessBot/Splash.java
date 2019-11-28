@@ -62,7 +62,7 @@ public class Splash extends Controller {
         }
 
         try {
-            Splash.chessBot = new ChessBot(light, dark, light_selected, dark_selected);
+            Splash.chessBot = new ChessBot(light, dark, light_selected, dark_selected, 20, 800);
         } catch (StockfishInitException e) {
             e.printStackTrace();
         }

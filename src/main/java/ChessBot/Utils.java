@@ -18,7 +18,9 @@ public class Utils {
 
     public static Robot getRobot() {
         try {
-            return new Robot();
+            Robot r = new Robot();
+            r.setAutoDelay(50);
+            return r;
         } catch (AWTException e) {
             e.printStackTrace();
             return null;

@@ -44,13 +44,13 @@ public class ChessBot {
         this.client = client;
     }
 
-    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected) throws StockfishInitException {
+    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected, int aiSkillLevel, int minThinkTime) throws StockfishInitException {
         this(light, dark, light_selected, dark_selected, new StockfishClient.Builder()
                 .setInstances(4)
                 .setPath("assets/")
                 .setOption(Option.Threads, 4) // Number of threads that Stockfish will use
-                .setOption(Option.Minimum_Thinking_Time, 800) // Minimum thinking time Stockfish will take
-                .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
+                .setOption(Option.Minimum_Thinking_Time, minThinkTime) // Minimum thinking time Stockfish will take in milliseconds
+                .setOption(Option.Skill_Level, aiSkillLevel) // Stockfish skill level 0-20
                 .setVariant(Variant.BMI2) // Stockfish Variant
                 .build());
     }
@@ -62,7 +62,7 @@ public class ChessBot {
         Query query = new Query.Builder(QueryType.Best_Move).setFen(fen).build();
 
         client.submit(query, result -> {
-            move(result, 50);
+            move(result);
             System.out.println(result);
         });
     }
@@ -252,7 +252,7 @@ public class ChessBot {
         return guess;
     }
 
-    private void move(String move, int patMillis) {
+    private void move(String move) {
         int x_i = move.charAt(0) - 'a' + 1;
         int y_i = move.charAt(1) - '1' + 1;
         int x = move.charAt(2) - 'a' + 1;
@@ -266,7 +266,6 @@ public class ChessBot {
         x = startX + ((isWhite ? x : 9 - x) * xScale) - (xScale / 2);
         y = startY + ((!isWhite ? y : 9 - y) * yScale) - (yScale / 2);
 
-        r.setAutoDelay(patMillis);
         Point origin = MouseInfo.getPointerInfo().getLocation();
         r.mouseMove(x_i, y_i);
         r.mousePress(InputEvent.BUTTON1_DOWN_MASK);
