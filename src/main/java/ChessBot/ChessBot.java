@@ -49,6 +49,7 @@ public class ChessBot {
         this(light, dark, light_selected, dark_selected, new Robot(),
                 new StockfishClient.Builder()
                 .setInstances(4)
+                .setPath("assets/")
                 .setOption(Option.Threads, 4) // Number of threads that Stockfish will use
                 .setOption(Option.Minimum_Thinking_Time, 100) // Minimum thinking time Stockfish will take
                 .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
