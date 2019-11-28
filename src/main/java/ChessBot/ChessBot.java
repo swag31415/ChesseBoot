@@ -7,6 +7,7 @@ import java.awt.Point;
 import java.awt.Robot;
 import java.awt.event.InputEvent;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,7 +71,7 @@ public class ChessBot {
         Double[][] pieces = getPieces();
 
         pieceMap = new HashMap<Double[], String>();
-        Double[] emptyTile = { 0.0, 0.0, 0.0, 0.0 };
+        Double[] emptyTile = Collections.nCopies(pieces[0].length, 0.0).toArray(new Double[0]);
         int offset = 48;
         String[] topSet = new String[16];
         String[] bottomSet = new String[16];
@@ -103,8 +104,10 @@ public class ChessBot {
     }
 
     public void getIsWhite() {
-        Double[][] pieces = getPieces();
-        isWhite = pieces[0][0] < pieces[63][0];
+        Color[][] board = Utils.getColors(Utils.getScreenshot(r, startX, endX, startY, endY));
+        int h = board.length - 1;
+        int w = board[0].length - 1;
+        isWhite = Utils.imgavg(Utils.arraySubset(board, 0, h/2, 0, w)) < Utils.imgavg(Utils.arraySubset(board, h/2, h, 0, w));
     }
 
     public void getBoard() {
@@ -184,18 +187,21 @@ public class ChessBot {
     private Double[][] getPieces() {
         Color[][] board = Utils.getColors(Utils.getScreenshot(r, startX, endX, startY, endY));
         Color[][] pboard = Utils.filterColors(board, Color.BLACK, light, dark, light_selected, dark_selected);
-        int w = (pboard[0].length / 8);
-        int h = (pboard.length / 8);
-        Double[][] pieces = new Double[64][4];
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        int pix = 8;
+        int w = (pboard[0].length / pix);
+        int h = (pboard.length / pix);
+        int sub = 16;
+        Double[][] pieces = new Double[pix*pix][sub*sub];
+        for (int i = 0; i < pix; i++) {
+            for (int j = 0; j < pix; j++) {
                 Color[][] tile = Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1);
-                int tw = tile[0].length - 1;
-                int th = tile.length - 1;
-                pieces[(8 * i) + j][0] = Utils.imgavg(Utils.arraySubset(tile, 0, th / 2, 0, tw / 2));
-                pieces[(8 * i) + j][1] = Utils.imgavg(Utils.arraySubset(tile, 0, th / 2, tw / 2, tw));
-                pieces[(8 * i) + j][2] = Utils.imgavg(Utils.arraySubset(tile, th / 2, th, 0, tw / 2));
-                pieces[(8 * i) + j][3] = Utils.imgavg(Utils.arraySubset(tile, th / 2, th, tw / 2, tw));
+                int w2 = (tile[0].length - 1) / sub;
+                int h2 = (tile.length - 1) / sub;
+                for (int i2 = 0; i2 < sub; i2++) {
+                    for (int j2 = 0; j2 < sub; j2++) {
+                        pieces[(pix * i) + j][(sub * i2) + j2] = Utils.imgavg(Utils.arraySubset(tile, i2 * w2, (i2+1) * w2, j2 * h2, (j2+1) * h2));
+                    }
+                }
             }
         }
         return pieces;
