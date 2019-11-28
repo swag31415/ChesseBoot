@@ -4,6 +4,10 @@ plugins {
     id 'edu.sc.seis.launch4j' version '2.4.6'
 }
 
+launch4j {
+  icon = "${projectDir}/assets/icon.ico"
+}
+
 repositories {
     jcenter()
 
