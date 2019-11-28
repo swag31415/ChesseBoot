@@ -36,28 +36,28 @@ public class ChessBot {
     private boolean isWhite;
     private Map<Double[], String> pieceMap;
 
-    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected, Robot r, StockfishClient client) {
+    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected, StockfishClient client) {
         this.light = light;
         this.dark = dark;
         this.light_selected = light_selected;
         this.dark_selected = dark_selected;
-        this.r = r;
+        this.r = Utils.getRobot();
         this.client = client;
     }
 
-    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected) throws AWTException, StockfishInitException {
-        this(light, dark, light_selected, dark_selected, new Robot(),
-                new StockfishClient.Builder()
+    public ChessBot(Color light, Color dark, Color light_selected, Color dark_selected) throws StockfishInitException {
+        this(light, dark, light_selected, dark_selected, new StockfishClient.Builder()
                 .setInstances(4)
                 .setPath("assets/")
                 .setOption(Option.Threads, 4) // Number of threads that Stockfish will use
-                .setOption(Option.Minimum_Thinking_Time, 100) // Minimum thinking time Stockfish will take
+                .setOption(Option.Minimum_Thinking_Time, 800) // Minimum thinking time Stockfish will take
                 .setOption(Option.Skill_Level, 20) // Stockfish skill level 0-20
                 .setVariant(Variant.BMI2) // Stockfish Variant
                 .build());
     }
 
     public void makeMove() {
+        this.r = Utils.getRobot();
         String fen = guessBoardFen();
         System.out.println(fen);
         Query query = new Query.Builder(QueryType.Best_Move).setFen(fen).build();
@@ -191,7 +191,7 @@ public class ChessBot {
         int pix = 8;
         int w = (pboard[0].length / pix);
         int h = (pboard.length / pix);
-        int sub = 16;
+        int sub = 9;
         Double[][] pieces = new Double[pix*pix][sub*sub];
         for (int i = 0; i < pix; i++) {
             for (int j = 0; j < pix; j++) {

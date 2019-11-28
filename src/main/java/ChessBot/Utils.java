@@ -8,12 +8,23 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import java.awt.image.BufferedImage;
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Robot;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 
 public class Utils {
+
+    public static Robot getRobot() {
+        try {
+            return new Robot();
+        } catch (AWTException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public static <T> T[][] arraySubset(T[][] array, int startY, int endY, int startX, int endX) {
         int d1 = endY - startY + 1;
         int d2 = endX - startX + 1;
