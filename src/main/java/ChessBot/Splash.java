@@ -1,6 +1,5 @@
 package ChessBot;
 
-import java.awt.AWTException;
 import java.awt.Color;
 
 import javafx.event.ActionEvent;

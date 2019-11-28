@@ -1,6 +1,5 @@
 package ChessBot;
 
-import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -108,7 +107,8 @@ public class ChessBot {
         Color[][] board = Utils.getColors(Utils.getScreenshot(r, startX, endX, startY, endY));
         int h = board.length - 1;
         int w = board[0].length - 1;
-        isWhite = Utils.imgavg(Utils.arraySubset(board, 0, h/2, 0, w)) < Utils.imgavg(Utils.arraySubset(board, h/2, h, 0, w));
+        isWhite = Utils.imgavg(Utils.arraySubset(board, 0, h / 2, 0, w)) 
+                    < Utils.imgavg(Utils.arraySubset(board, h / 2, h, 0, w));
     }
 
     public void getBoard() {
@@ -192,7 +192,7 @@ public class ChessBot {
         int w = (pboard[0].length / pix);
         int h = (pboard.length / pix);
         int sub = 9;
-        Double[][] pieces = new Double[pix*pix][sub*sub];
+        Double[][] pieces = new Double[pix * pix][sub * sub];
         for (int i = 0; i < pix; i++) {
             for (int j = 0; j < pix; j++) {
                 Color[][] tile = Utils.arraySubset(pboard, i * h, ((i + 1) * h) - 1, j * w, ((j + 1) * w) - 1);
@@ -200,7 +200,8 @@ public class ChessBot {
                 int h2 = (tile.length - 1) / sub;
                 for (int i2 = 0; i2 < sub; i2++) {
                     for (int j2 = 0; j2 < sub; j2++) {
-                        pieces[(pix * i) + j][(sub * i2) + j2] = Utils.imgavg(Utils.arraySubset(tile, i2 * w2, (i2+1) * w2, j2 * h2, (j2+1) * h2));
+                        pieces[(pix * i) + j][(sub * i2) + j2] = Utils
+                                .imgavg(Utils.arraySubset(tile, i2 * w2, (i2 + 1) * w2, j2 * h2, (j2 + 1) * h2));
                     }
                 }
             }

@@ -13,7 +13,7 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 public class App extends Application {
-    
+
     private static Stage pStage;
     private static App instance;
 
