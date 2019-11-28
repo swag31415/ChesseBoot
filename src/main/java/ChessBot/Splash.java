@@ -64,7 +64,7 @@ public class Splash extends Controller {
 
         try {
             Splash.chessBot = new ChessBot(light, dark, light_selected, dark_selected);
-        } catch (AWTException | StockfishInitException e) {
+        } catch (StockfishInitException e) {
             e.printStackTrace();
         }
     }
