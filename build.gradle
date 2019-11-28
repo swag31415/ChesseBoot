@@ -1,13 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.8'
     id 'edu.sc.seis.launch4j' version '2.4.6'
-}
-
-javafx {
-    version = "12.0.2"
-    modules = ['javafx.fxml', 'javafx.controls', 'javafx.web']
 }
 
 repositories {
@@ -19,9 +13,11 @@ repositories {
 dependencies {
     implementation 'com.google.guava:guava:27.0.1-jre'
 
-    runtimeOnly "org.openjfx:javafx-graphics:$javafx.version:win"
-
     compile 'com.github.Niflheim:Stockfish-Java:2.0'
+
+    // https://mvnrepository.com/artifact/com.1stleg/jnativehook
+    compile group: 'com.1stleg', name: 'jnativehook', version: '2.1.0'
+
 }
 
 // Define the main class for the application
@@ -29,7 +25,7 @@ mainClassName = 'ChessBot.App'
 
 jar {
     manifest {
-        attributes 'Main-Class': 'ChessBot.Launcher'
+        attributes 'Main-Class': 'ChessBot.App'
     }
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
