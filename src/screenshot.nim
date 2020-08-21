@@ -19,11 +19,11 @@ proc screenshot*(x1, y1, x2, y2: int32): seq[uint8] =
   mybmi.bmiHeader.biWidth = w
   mybmi.bmiHeader.biHeight = h
   mybmi.bmiHeader.biPlanes = 1
-  mybmi.bmiHeader.biBitCount = 32
+  mybmi.bmiHeader.biBitCount = 24
   mybmi.bmiHeader.biCompression = BI_RGB
-  mybmi.bmiHeader.biSizeImage = w * h * 4
+  mybmi.bmiHeader.biSizeImage = w * h * 3
   
-  result = newSeq[uint8](w * h * 4)
+  result = newSeq[uint8](w * h * 3)
   # Feed image data into the result variable
   discard CreateDIBSection(hdc, addr mybmi, DIB_RGB_COLORS, cast[ptr pointer](unsafeAddr(result[0])), 0, 0)
   discard GetDIBits(hdc, hBitmap, 0, h, cast[ptr pointer](unsafeAddr(result[0])), addr mybmi, DIB_RGB_COLORS)
