@@ -4,8 +4,7 @@
 from screenshot import screenshot
 import numpy as np
 from stockfish import Stockfish, StockfishException
-import matplotlib.pyplot as plt
-from matplotlib import animation
+from ui import init_ui
 
 # in ARGB form
 light = 0x00eeeed2
@@ -57,14 +56,12 @@ def get_pieces(board, is_white):
   return piece_map
 
 def get_layout(board, piece_map):
-  layout = ''
+  layout = [[' ' for j in range(0, 8)] for i in range(0, 8)]
   for i in range(0, 8):
     for j in range(0, 8):
       tile = index_board(board, i, j)
       mask = np.isin(tile, exclude, invert=True)
-      if not np.any(mask):
-        layout += ' '
-        continue
+      if not np.any(mask): continue
       cand = np.where(mask, tile, 0).astype(np.int64)
       mdiff = np.sum(cand)
       best = ' '
@@ -73,25 +70,29 @@ def get_layout(board, piece_map):
         if diff < mdiff:
           mdiff = diff
           best = p
-      layout += best
+      layout[i][j] = best
   return layout
 
 def make_fen(layout, is_white):
   fen = ''
   empties = 0
-  for i, c in enumerate(layout):
-    if i > 0 and i % 8 == 0:
-      if empties > 0:
-        fen += str(empties)
-        empties = 0
-      fen += '/'
-    if c == ' ':
-      empties += 1
-    else:
-      if empties > 0:
-        fen += str(empties)
-        empties = 0
-      fen += c
+  for i, row in enumerate(layout):
+    for j, c in enumerate(row):
+      if i > 0 and j == 0:
+        if empties > 0:
+          fen += str(empties)
+          empties = 0
+        fen += '/'
+      if c == ' ':
+        empties += 1
+      else:
+        if empties > 0:
+          fen += str(empties)
+          empties = 0
+        fen += c
+  if empties > 0:
+    fen += str(empties)
+    empties = 0
   if not is_white:
     fen = fen[::-1]
   fen += ' w' if is_white else ' b'
@@ -110,37 +111,35 @@ board_loc = find_board()
 im = get_board(board_loc)
 w, h = im.shape
 
-fig, ax = plt.subplots()
-disp = ax.imshow(im, animated=True)
-ax.arrow(0, 0, w, h, width=100, length_includes_head=True)
+update_ui = init_ui()
 
 is_white = get_is_white(im)
 piece_map = get_pieces(im, is_white)
 last_fen = ''
-def update_image(i):
-  global last_fen, stockfish
+while True:
   im = get_board(board_loc)
   layout = get_layout(im, piece_map)
   fen = make_fen(layout, is_white)
   if fen == last_fen:
-    return None
+    update_ui()
+    continue
   last_fen = fen
-  disp.set_array(im)
+  update_ui(layout)
+  if not stockfish.is_fen_valid(fen):
+    print('invalid fen: ', fen)
+    continue
   try:
     stockfish.set_fen_position(fen)
     move = stockfish.get_best_move()
     if move:
+      print(move)
       x0, y0, xi, yi = [(mmap[m]+0.5)/8 for m in move]
       if not is_white:
         x0, y0, xi, yi = 1-x0, 1-y0, 1-xi, 1-yi
       y0, yi = 1-y0, 1-yi
-      x0, y0, xi, yi = x0*w, y0*h, (xi-x0)*w, (yi-y0)*h
-      ax.patches.pop(0)
-      ax.arrow(x0, y0, xi, yi, width=w/30, head_width=w/12, head_length=w/12, length_includes_head=True)
+      update_ui(layout, (x0, y0, xi, yi))
   except StockfishException:
+    print("we've had a stockfish exception, below is the fen")
+    print(fen)
     stockfish = Stockfish(path=sf_path, parameters=params)
-    return None
-
-ani = animation.FuncAnimation(fig, update_image, interval=250)
-plt.axis('off')
-plt.show()
+    continue
