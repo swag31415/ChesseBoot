@@ -55,7 +55,7 @@ def init_ui():
   root.resizable(False,False)
   bf = BoardFrame()
   reset_btn = tk.Button(root, text='reset', font=font, bg=bgc, fg=fgc)
-  pause_btn = tk.Button(root, text='pause', font=font, bg=bgc, fg=fgc)
+  pause_btn = tk.Button(root, text='start', font=font, bg=bgc, fg=fgc)
   quick_btn = tk.Button(root, text='quick', font=font, bg=bgc, fg=fgc)
   reset_btn.pack(side=tk.LEFT)
   pause_btn.pack(side=tk.LEFT)
@@ -65,6 +65,8 @@ def init_ui():
   def loop(dt, main_func, reset_func, pause_func, quick_func):
     reset_btn.configure(command=reset_func)
     def pause_wrapper():
+      if pause_btn['text'] == 'start':
+        reset_func()
       pause_btn.configure(text='unpause' if pause_btn['text'] == 'pause' else 'pause')
       pause_func()
     pause_btn.configure(command=pause_wrapper)

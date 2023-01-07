@@ -106,16 +106,10 @@ params = {
 }
 stockfish = Stockfish(path=sf_path, parameters=params)
 
-board_loc = find_board()
-im = get_board(board_loc)
-w, h = im.shape
-
 update_ui, loop = init_ui()
 
-is_white = get_is_white(im)
-piece_map = get_pieces(im, is_white)
 last_fen = ''
-paused = False
+paused = True
 def main(override=False):
   if paused and not override: return None
   global im, layout, last_fen, stockfish
