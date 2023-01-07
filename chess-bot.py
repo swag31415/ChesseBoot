@@ -12,7 +12,6 @@ dark = 0x00769656
 
 exclude = [light, dark, 0x00edeed1, 0x00779952, 0x00baca2b, 0x00f6f669]
 
-X = []
 mmap = {l:i for s in ['12345678','abcdefgh'] for i, l in enumerate(s)}
 
 # assuming player is white
@@ -111,29 +110,28 @@ board_loc = find_board()
 im = get_board(board_loc)
 w, h = im.shape
 
-update_ui = init_ui()
+update_ui, loop = init_ui()
 
 is_white = get_is_white(im)
 piece_map = get_pieces(im, is_white)
 last_fen = ''
-while True:
+def main():
+  global im, layout, last_fen, stockfish
   im = get_board(board_loc)
   layout = get_layout(im, piece_map)
   fen = make_fen(layout, is_white)
   if fen == last_fen:
-    update_ui()
-    continue
+    return None
   last_fen = fen
-  update_ui(layout)
   if not stockfish.is_fen_valid(fen):
     print('invalid fen: ', fen)
-    continue
+    return None
   try:
     stockfish.set_fen_position(fen)
     move = stockfish.get_best_move()
     if move:
       print(move)
-      x0, y0, xi, yi = [(mmap[m]+0.5)/8 for m in move]
+      x0, y0, xi, yi = [(mmap[m]+0.5)/8 for m in move[:4]]
       if not is_white:
         x0, y0, xi, yi = 1-x0, 1-y0, 1-xi, 1-yi
       y0, yi = 1-y0, 1-yi
@@ -142,4 +140,6 @@ while True:
     print("we've had a stockfish exception, below is the fen")
     print(fen)
     stockfish = Stockfish(path=sf_path, parameters=params)
-    continue
+    return None
+
+loop(250, main)

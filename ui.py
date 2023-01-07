@@ -38,13 +38,12 @@ class BoardFrame(Frame):
         self.ids[i][j] = self.canvas.create_text((j+.5)*self.fw, (i+.5)*self.fw, text=self.charmap[layout[i][j]], fill=self.piece_color, font=('Arial 30'))
     self.arrow = self.canvas.create_line(0, 0, 0, 0, arrow=LAST, fill=self.arrow_color)
     self.canvas.pack(fill=BOTH, expand=1)
-  def set_layout(self, layout, arrow=None):
+  def set_layout(self, layout, arrow):
     for i in range(0, 8):
       for j in range(0, 8):
         self.canvas.itemconfig(self.ids[i][j], text=self.charmap[layout[i][j]])
-    if arrow:
-      x0, y0, xi, yi = [c * self.width for c in arrow]
-      self.canvas.coords(self.arrow, x0, y0, xi, yi)
+    x0, y0, xi, yi = [c * self.width for c in arrow]
+    self.canvas.coords(self.arrow, x0, y0, xi, yi)
 
 def init_ui():
   root = Tk(className='Chess-Bot')
@@ -52,9 +51,12 @@ def init_ui():
   root.geometry("400x400")
   root.resizable(False,False)
   ex = BoardFrame()
-  def update_ui(layout=None, arrow=None):
-    if layout:
-      ex.set_layout(layout, arrow)
-    root.update_idletasks()
-    root.update()
-  return update_ui
+  def update_ui(layout, arrow):
+    ex.set_layout(layout, arrow)
+  def loop(dt, func):
+    def task():
+      func()
+      root.after(dt, task)
+    task()
+    root.mainloop()
+  return update_ui, loop
