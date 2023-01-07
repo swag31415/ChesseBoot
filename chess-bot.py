@@ -115,7 +115,9 @@ update_ui, loop = init_ui()
 is_white = get_is_white(im)
 piece_map = get_pieces(im, is_white)
 last_fen = ''
+paused = False
 def main():
+  if paused: return None
   global im, layout, last_fen, stockfish
   im = get_board(board_loc)
   layout = get_layout(im, piece_map)
@@ -142,4 +144,16 @@ def main():
     stockfish = Stockfish(path=sf_path, parameters=params)
     return None
 
-loop(250, main)
+def reset():
+  global board_loc, im, w, h, is_white, piece_map
+  board_loc = find_board()
+  im = get_board(board_loc)
+  w, h = im.shape
+  is_white = get_is_white(im)
+  piece_map = get_pieces(im, is_white)
+
+def pause():
+  global paused
+  paused = not paused
+
+loop(250, main, reset, pause)
