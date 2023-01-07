@@ -47,23 +47,28 @@ class BoardFrame(tk.Frame):
 
 def init_ui():
   bgc = '#000'
+  fgc = '#fff'
+  font = 'Trebuchet 12'
   root = tk.Tk(className='Chess-Bot')
   root.configure(bg=bgc)
   root.geometry("400x440")
   root.resizable(False,False)
   bf = BoardFrame()
-  reset_btn = tk.Button(root, text='reset', font='Trebuchet 12', bg=bgc, fg='#fff')
-  pause_btn = tk.Button(root, text='pause', font='Trebuchet 12', bg=bgc, fg='#fff')
+  reset_btn = tk.Button(root, text='reset', font=font, bg=bgc, fg=fgc)
+  pause_btn = tk.Button(root, text='pause', font=font, bg=bgc, fg=fgc)
+  quick_btn = tk.Button(root, text='quick', font=font, bg=bgc, fg=fgc)
   reset_btn.pack(side=tk.LEFT)
   pause_btn.pack(side=tk.LEFT)
+  quick_btn.pack(side=tk.LEFT)
   def update_ui(layout, arrow):
     bf.set_layout(layout, arrow)
-  def loop(dt, main_func, reset_func, pause_func):
+  def loop(dt, main_func, reset_func, pause_func, quick_func):
     reset_btn.configure(command=reset_func)
     def pause_wrapper():
       pause_btn.configure(text='unpause' if pause_btn['text'] == 'pause' else 'pause')
       pause_func()
     pause_btn.configure(command=pause_wrapper)
+    quick_btn.configure(command=quick_func)
     def task():
       main_func()
       root.after(dt, task)
