@@ -53,6 +53,7 @@ def init_ui():
   root.configure(bg=bgc)
   root.geometry("400x440")
   root.resizable(False,False)
+  root.attributes('-topmost',True)
   bf = BoardFrame()
   reset_btn = tk.Button(root, text='reset', font=font, bg=bgc, fg=fgc)
   pause_btn = tk.Button(root, text='start', font=font, bg=bgc, fg=fgc)
