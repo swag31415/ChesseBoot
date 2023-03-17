@@ -10,7 +10,7 @@ from ui import init_ui
 light = 0x00eeeed2
 dark = 0x00769656
 
-exclude = [light, dark, 0x00edeed1, 0x00779952, 0x00baca2b, 0x00f6f669]
+exclude = [light, dark, 0x00edeed1, 0x00779952, 0x00bbcb2b, 0x00f7f769]
 
 mmap = {l:i for s in ['12345678','abcdefgh'] for i, l in enumerate(s)}
 
