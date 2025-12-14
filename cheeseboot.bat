@@ -1,1 +1,1 @@
-python chess-bot.py
+python chess_bot.py
